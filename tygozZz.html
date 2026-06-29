@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TygozZz</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#0a0a0a;color:white;min-height:100vh}
+#authScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.logo-img{width:180px;margin-bottom:30px}
+.card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:30px;max-width:350px}
+h1{font-size:22px;margin-bottom:10px;background:linear-gradient(135deg,#a855f7,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+p{color:#999;margin-bottom:20px;font-size:14px}
+.google-btn{width:100%;padding:14px;background:white;color:#333;border:none;border-radius:12px;font-size:16px;font-weight:bold;cursor:pointer}
+#dashboard{display:none;max-width:800px;margin:0 auto;padding:15px}
+.header{display:flex;justify-content:space-between;align-items:center;padding:15px;background:rgba(255,255,255,0.05);border-radius:16px;margin-bottom:15px;flex-wrap:wrap;gap:10px}
+.signout-btn{padding:8px 15px;background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:8px;cursor:pointer}
+.upload-zone{background:rgba(255,255,255,0.05);border:2px dashed rgba(255,255,255,0.2);border-radius:20px;padding:40px 20px;text-align:center;cursor:pointer;margin-bottom:15px}
+.results{display:none;grid-template-columns:1fr 1fr;gap:10px}
+.result-card{background:rgba(255,255,255,0.05);border-radius:16px;overflow:hidden}
+.result-header{padding:12px;background:rgba(255,255,255,0.03);color:#999;font-size:13px}
+.result-card img{width:100%;max-height:300px;object-fit:contain;padding:10px}
+.status{display:none;text-align:center;padding:15px;color:#a855f7}
+.error-msg{display:none;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.3);border-radius:12px;padding:12px;margin-top:15px;color:#ff4444;font-size:13px}
+.download-btn{background:#a855f7;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:12px}
+@media(max-width:600px){.results{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+<div style="text-align:center">
+<img src="https://raw.githubusercontent.com/tygocmbk07-dotcom/Logo/main/InShot_20260630_023506063.png" alt="TygozZz" class="logo-img">
+<div class="card">
+<h1>AI Image Upscaler</h1>
+<p>Sign in to upscale images to 4K</p>
+<button id="googleSignInBtn" class="google-btn">Sign in with Google</button>
+</div>
+</div>
+</div>
+
+<div id="dashboard">
+<div class="header">
+<div>
+<strong>TygozZz</strong>
+<div style="font-size:12px;color:#999">Hello <span id="userName">User</span></div>
+</div>
+<button id="signOutBtn" class="signout-btn">Sign Out</button>
+</div>
+
+<div id="uploadZone" class="upload-zone">
+<div style="font-size:40px">📤</div>
+<h2 id="uploadTitle">Drop image here</h2>
+<p style="color:#999;font-size:13px">or tap to browse</p>
+<input type="file" id="fileInput" accept="image/*" style="display:none">
+</div>
+
+<div id="status" class="status">Processing...</div>
+
+<div id="results" class="results">
+<div class="result-card">
+<div class="result-header">Original</div>
+<img id="originalImg" alt="Original">
+</div>
+<div class="result-card">
+<div class="result-header">Upscaled <button id="downloadBtn" class="download-btn">Download</button></div>
+<img id="upscaledImg" alt="Upscaled">
+</div>
+</div>
+
+<div id="errorMsg" class="error-msg"></div>
+</div>
+
+<script>
+var firebaseConfig = {
+apiKey:"AIzaSyCrAq_ASEVnaEfAeOdJ2xjP_ib0XXblWoQ",
+authDomain:"tygozzz-8f657.firebaseapp.com",
+projectId:"tygozzz-8f657",
+storageBucket:"tygozzz-8f657.firebasestorage.app",
+messagingSenderId:"717999040883",
+appId:"1:717999040883:web:eb0484c74f2b50f55afd06"
+};
+
+firebase.initializeApp(firebaseConfig);
+var auth=firebase.auth();
+var provider=new firebase.auth.GoogleAuthProvider();
+
+var authScreen=document.getElementById('authScreen');
+var dashboard=document.getElementById('dashboard');
+var googleSignInBtn=document.getElementById('googleSignInBtn');
+var signOutBtn=document.getElementById('signOutBtn');
+var userName=document.getElementById('userName');
+var uploadZone=document.getElementById('uploadZone');
+var fileInput=document.getElementById('fileInput');
+var uploadTitle=document.getElementById('uploadTitle');
+var statusDiv=document.getElementById('status');
+var resultsDiv=document.getElementById('results');
+var originalImg=document.getElementById('originalImg');
+var upscaledImg=document.getElementById('upscaledImg');
+var downloadBtn=document.getElementById('downloadBtn');
+var errorMsg=document.getElementById('errorMsg');
+
+googleSignInBtn.onclick=function(){
+auth.signInWithPopup(provider).catch(function(error){
+errorMsg.textContent='Error: '+error.message;
+errorMsg.style.display='block';
+});
+};
+
+signOutBtn.onclick=function(){
+auth.signOut();
+};
+
+auth.onAuthStateChanged(function(user){
+if(user){
+authScreen.style.display='none';
+dashboard.style.display='block';
+userName.textContent=user.displayName;
+}else{
+authScreen.style.display='flex';
+dashboard.style.display='none';
+}
+});
+
+uploadZone.onclick=function(){
+fileInput.click();
+};
+
+fileInput.onchange=function(e){
+if(e.target.files[0]) handleFile(e.target.files[0]);
+};
+
+uploadZone.ondragover=function(e){
+e.preventDefault();
+};
+
+uploadZone.ondrop=function(e){
+e.preventDefault();
+if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+};
+
+function handleFile(file){
+var reader=new FileReader();
+reader.onload=function(e){
+originalImg.src=e.target.result;
+};
+reader.readAsDataURL(file);
+
+uploadTitle.textContent=file.name;
+statusDiv.style.display='block';
+resultsDiv.style.display='none';
+errorMsg.style.display='none';
+
+var HF_TOKEN="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";
+
+fetch('https://api-inference.huggingface.co/models/lllyasviel/Real-ESRGAN',{
+method:'POST',
+headers:{'Authorization':'Bearer '+HF_TOKEN},
+body:file
+})
+.then(function(response){
+if(!response.ok) throw new Error('Status: '+response.status);
+return response.blob();
+})
+.then(function(blob){
+var url=URL.createObjectURL(blob);
+upscaledImg.src=url;
+resultsDiv.style.display='grid';
+downloadBtn.onclick=function(){
+var a=document.createElement('a');
+a.href=url;
+a.download='upscaled_'+file.name;
+a.click();
+};
+uploadTitle.textContent='Done!';
+})
+.catch(function(error){
+errorMsg.textContent='Failed: '+error.message;
+errorMsg.style.display='block';
+uploadTitle.textContent='Error';
+})
+.finally(function(){
+statusDiv.style.display='none';
+});
+}
+</script>
+
+</body>
+</html>
